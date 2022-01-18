@@ -37,7 +37,7 @@ namespace UnitAlert
         {
             // Loads the variables in _fileWatcher to match the user settings and also sets the UI.
             _fileWatcher.ChatlogFilePath = _userSettings?.ChatlogFilePath;
-            _fileWatcher.SoundFilePath = _userSettings?.ChatlogFilePath;
+            _fileWatcher.SoundFilePath = _userSettings?.SoundFilePath;
             _fileWatcher.Unit = _userSettings?.LastUnit;
             ChatlogTextBox.Text = _fileWatcher.ChatlogFilePath;
             SoundFileTextBox.Text = _fileWatcher.SoundFilePath;
