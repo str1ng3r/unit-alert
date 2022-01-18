@@ -1,13 +1,9 @@
-﻿using System.ComponentModel;
-using System.Diagnostics;
-using System.IO;
+﻿using System.IO;
 using System.IO.IsolatedStorage;
 using System.Text.Json;
-using System.Threading;
 using System.Windows;
 using System.Windows.Input;
 using Microsoft.Win32;
-using NAudio.Wave;
 
 namespace UnitAlert
 {
@@ -16,11 +12,7 @@ namespace UnitAlert
     /// </summary>
     public partial class MainWindow : Window
     {
-        private string? _filePath;
-        private string? _soundFilePath;
-        private string? _unit;
-        private readonly BackgroundWorker _worker = new();
-        private readonly BackgroundWorker _soundWorker = new();
+        private readonly FileWatcher _fileWatcher;
         private UserSettings? _userSettings;
 
         private readonly IsolatedStorageFile _isoStore =
@@ -28,7 +20,9 @@ namespace UnitAlert
 
         public MainWindow()
         {
+            _fileWatcher = new FileWatcher();
             InitializeComponent();
+            // If the config file exists, deserialize the json into an UserSettings object then load them.
             if (_isoStore.FileExists("unit_config.json"))
             {
                 using var isoStream = new IsolatedStorageFileStream("unit_config.json", FileMode.Open, _isoStore);
@@ -36,20 +30,18 @@ namespace UnitAlert
                 _userSettings = JsonSerializer.Deserialize<UserSettings>(streamReader.ReadToEnd());
                 LoadUserSettings();
             }
-            _worker.DoWork += WatchFile;
-            _worker.WorkerSupportsCancellation = true;
-            _soundWorker.DoWork += PlaySound;
             DataContext = this;
         }
 
         private void LoadUserSettings()
         {
-            _filePath = _userSettings?.ChatlogFilePath;
-            _soundFilePath = _userSettings?.ChatlogFilePath;
-            _unit = _userSettings?.LastUnit;
-            ChatlogTextBox.Text = _filePath;
-            SoundFileTextBox.Text = _soundFilePath;
-            UnitTextBox.Text = _unit;
+            // Loads the variables in _fileWatcher to match the user settings and also sets the UI.
+            _fileWatcher.ChatlogFilePath = _userSettings?.ChatlogFilePath;
+            _fileWatcher.SoundFilePath = _userSettings?.ChatlogFilePath;
+            _fileWatcher.Unit = _userSettings?.LastUnit;
+            ChatlogTextBox.Text = _fileWatcher.ChatlogFilePath;
+            SoundFileTextBox.Text = _fileWatcher.SoundFilePath;
+            UnitTextBox.Text = _fileWatcher.Unit;
         }
 
         private void CloseButton_OnClick(object sender, RoutedEventArgs e)
@@ -67,94 +59,36 @@ namespace UnitAlert
             Border1.Focus();
         }
         
-        private void WatchFile(object? sender, DoWorkEventArgs e)
-        {
-            // Gets the file path from the worker and check if it is not null.
-            var filePath = (string?) e.Argument;
-            if (filePath is null)
-            {
-                return;
-            }
-            // Opens a FileStream of that file, seeks to the end then starts reading from it.
-            using var fileStream = File.Open(filePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
-            fileStream.Seek(0, SeekOrigin.End);
-            var lastFileSize = fileStream.Length;
-            using var streamReader = new StreamReader(fileStream);
-            while (true)
-            {
-                // We check if the worker was cancelled
-                if(_worker.CancellationPending)
-                {
-                    e.Cancel = true;
-                    break;
-                }
-                // If the current file size is smaller than the last saved file size, seek to the end.
-                if (fileStream.Length < lastFileSize)
-                {
-                    fileStream.Seek(0, SeekOrigin.End);
-                }
-                // Read a line and just skip the rest if it is null.
-                var line = streamReader.ReadLine();
-                if (line == null)
-                {
-                    continue;
-                }
-                
-                Thread.Sleep(250);
-                if (_unit != null && line.Contains(_unit))
-                {
-                    _soundWorker.RunWorkerAsync();
-                }
-                lastFileSize = fileStream.Length;
-            }
-            
-        }
-
-        private void PlaySound(object? sender, DoWorkEventArgs e)
-        {
-            using var audioFile = new AudioFileReader(_soundFilePath);
-            using var outputDevice = new WaveOutEvent();
-            outputDevice.Init(audioFile);
-            outputDevice.Play();
-            while (outputDevice.PlaybackState == PlaybackState.Playing)
-            {
-                Thread.Sleep(1000);
-            }
-        }
         
         private void RagePickButton_OnClick(object sender, RoutedEventArgs e)
         {
+            // Opens a file dialog for TXT and gets the file path of the selected file.
             var openFileDialog = new OpenFileDialog {
                 Filter = "Text files (*.txt)|*.txt|All files (*.*)|*.*"
             };
             openFileDialog.ShowDialog();
-            _filePath = openFileDialog.FileName;
-            ChatlogTextBox.Text = _filePath;
-            if (_worker.IsBusy)
-            {
-                _worker.CancelAsync();
-            }
-            
+            _fileWatcher.ChatlogFilePath = openFileDialog.FileName;
+            ChatlogTextBox.Text = _fileWatcher.ChatlogFilePath;
+            // Sets the variables to the filename and cancels any previous workers if there are any.
+            _fileWatcher.CancelWatch();
         }
         
         private void SoundFilePickButton_OnClick(object sender, RoutedEventArgs e)
         {
+            // Opens a file dialog for the sound file then sets the UI and variables to it.
             var openFileDialog = new OpenFileDialog {
                 Filter = "Sound files (*.mp3)|*.mp3|All files (*.*)|*.*"
             };
             openFileDialog.ShowDialog();
-            _soundFilePath = openFileDialog.FileName;
-            SoundFileTextBox.Text = _soundFilePath;
+            _fileWatcher.SoundFilePath = openFileDialog.FileName;
+            SoundFileTextBox.Text = _fileWatcher.SoundFilePath;
         }
 
 
         private void ResetButton_OnClick(object sender, RoutedEventArgs e)
         {
-            if (_worker.IsBusy)
-            {
-                _worker.CancelAsync();
-            }
-
+            // Clicking the reset buttons hides it, enabling all the UI.
+            _fileWatcher.CancelWatch();
             SelectButton.Visibility = Visibility.Visible;
             ResetButton.Visibility = Visibility.Collapsed;
             UnitTextBox.IsEnabled = true;
@@ -162,7 +96,6 @@ namespace UnitAlert
             ChatlogTextBox.IsEnabled = true;
             RagePickButton.IsEnabled = true;
             SoundFilePickButton.IsEnabled = true;
-            _unit = null;
             WindowChromeUnitText.Text = "";
         }
 
@@ -173,19 +106,20 @@ namespace UnitAlert
                 MessageBox.Show("Unit not selected.");
                 return;
             }
-            if (string.IsNullOrEmpty(_filePath))
+            if (string.IsNullOrEmpty(_fileWatcher.ChatlogFilePath))
             {
                 MessageBox.Show("Chatlog file not selected.");
                 return;
             }
-            if (string.IsNullOrEmpty(_filePath))
+            if (string.IsNullOrEmpty(_fileWatcher.SoundFilePath))
             {
                 MessageBox.Show("Sound file not selected.");
                 return;
             }
             
-            _unit = UnitTextBox.Text;
-            WindowChromeUnitText.Text = $"({_unit})";
+            // This block disables all the UI and changes the Select button to a Reset button
+            _fileWatcher.Unit = UnitTextBox.Text;
+            WindowChromeUnitText.Text = $"({_fileWatcher.Unit})";
             SelectButton.Visibility = Visibility.Collapsed;
             ResetButton.Visibility = Visibility.Visible;
             UnitTextBox.IsEnabled = false;
@@ -196,18 +130,19 @@ namespace UnitAlert
 
             // If user settings is null, create a new one.
             _userSettings ??= new UserSettings();
-            _userSettings.ChatlogFilePath = _filePath;
-            _userSettings.SoundFilePath = _soundFilePath;
-            _userSettings.LastUnit = _unit;
+            _userSettings.ChatlogFilePath = _fileWatcher.ChatlogFilePath;
+            _userSettings.SoundFilePath = _fileWatcher.SoundFilePath;
+            _userSettings.LastUnit = _fileWatcher.Unit;
 
+            // Writes the _userSettings to an isolated json file.
             var jsonData = JsonSerializer.Serialize(_userSettings);
             using var isoStream = new IsolatedStorageFileStream("unit_config.json", FileMode.OpenOrCreate, _isoStore);
             isoStream.SetLength(0);
             using var streamWriter = new StreamWriter(isoStream);
             streamWriter.WriteLine(jsonData);
             
-            _worker.RunWorkerAsync(argument: _filePath);
-            
+            // Starts the watcher
+            _fileWatcher.StartWatch();
         }
 
 
