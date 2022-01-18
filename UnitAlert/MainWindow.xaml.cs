@@ -1,7 +1,9 @@
 ﻿using System.IO;
 using System.IO.IsolatedStorage;
+using System.Runtime.CompilerServices;
 using System.Text.Json;
 using System.Windows;
+using System.Windows.Forms.PropertyGridInternal;
 using System.Windows.Input;
 using Microsoft.Win32;
 
@@ -14,6 +16,7 @@ namespace UnitAlert
     {
         private readonly FileWatcher _fileWatcher;
         private UserSettings? _userSettings;
+        
 
         private readonly IsolatedStorageFile _isoStore =
             IsolatedStorageFile.GetStore(IsolatedStorageScope.User | IsolatedStorageScope.Assembly, null, null);

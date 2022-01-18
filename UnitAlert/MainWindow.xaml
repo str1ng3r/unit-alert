@@ -5,7 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         mc:Ignorable="d"
         Title="Unit Alert" Height="275" Width="350"
-        WindowStyle="SingleBorderWindow"
+        WindowStyle="ToolWindow"
         ResizeMode="CanMinimize">
     <WindowChrome.WindowChrome>
         <WindowChrome CaptionHeight="25"></WindowChrome>
