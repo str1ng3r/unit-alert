@@ -2,6 +2,7 @@
 using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
 using System.Threading;
 using NAudio.Wave;
 
@@ -11,7 +12,15 @@ public class FileWatcher
 {
     public string? ChatlogFilePath { get; set; }
     public string? SoundFilePath { get; set; }
-    public string? Unit { get; set; }
+
+    private List<string>? _unit;
+
+    public string? Unit
+    {
+        get => _unit!.First();
+        set => _unit = value?.Split(';').ToList();
+    }
+
     private readonly BackgroundWorker _worker;
     private readonly BackgroundWorker _soundWorker;
     
@@ -50,7 +59,7 @@ public class FileWatcher
             var line = streamReader.ReadLine();
             if (string.IsNullOrEmpty(line))
             {
-                Thread.Sleep(500);
+                Thread.Sleep(250);
                 continue;
             }
             Trace.WriteLine(line);
@@ -61,7 +70,7 @@ public class FileWatcher
     private void WatchFileNew(object? sender, DoWorkEventArgs e)
     {
         // Gets the file path from the worker and check if it is not null.
-        if (string.IsNullOrEmpty(ChatlogFilePath) || string.IsNullOrEmpty(Unit))
+        if (string.IsNullOrEmpty(ChatlogFilePath) || _unit is null || !_unit.Any())
         {
             return;
         }
@@ -79,7 +88,7 @@ public class FileWatcher
             }
             
             // If the unit is null or the line doesn't contain unit or the sound worker is busy, skip the iteration.
-            if (Unit == null || !line.Contains(Unit) || _soundWorker.IsBusy)
+            if (_unit is null || !_unit.Any(s => line.Contains(s)) || _soundWorker.IsBusy)
             {
                 continue;
             }
