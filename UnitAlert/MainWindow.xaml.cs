@@ -1,11 +1,10 @@
-﻿using System.Diagnostics;
+﻿using System;
+using System.Drawing;
 using System.IO;
 using System.IO.IsolatedStorage;
-using System.Reflection;
-using System.Runtime.CompilerServices;
 using System.Text.Json;
 using System.Windows;
-using System.Windows.Forms.PropertyGridInternal;
+using Forms = System.Windows.Forms;
 using System.Windows.Input;
 using Microsoft.Win32;
 
@@ -19,6 +18,7 @@ namespace UnitAlert
     {
         private readonly FileWatcher _fileWatcher;
         private UserSettings? _userSettings;
+        private Forms.NotifyIcon? _notifyIcon;
         
 
         private readonly IsolatedStorageFile _isoStore =
@@ -57,7 +57,30 @@ namespace UnitAlert
 
         private void MinButton_OnClick(object sender, RoutedEventArgs e)
         {
+            // If the minimized button is clicked, set the window as minimized and disable it in the taskbar.
             WindowState = WindowState.Minimized;
+            ShowInTaskbar = false;
+            // Get the app icon from the Resources folder.
+            var iconStream = Application.GetResourceStream(new Uri("pack://application:,,,/Resources/appicon.ico"))?.Stream;
+            if (iconStream is null)
+            {
+                return;
+            }
+            // Create the notification icon and assign it to _notifyIcon
+            _notifyIcon = new Forms.NotifyIcon();
+            _notifyIcon.Icon = new Icon(iconStream);
+            _notifyIcon.Text = "Unit Alert";
+            _notifyIcon.Click += NotifyIcon_Click;
+            _notifyIcon.Visible = true;
+
+        }
+
+        private void NotifyIcon_Click(object? sender, EventArgs e)
+        {
+            // If the notification icon is clicked, bring the window back, dispose the icon and show the taskbar.
+            WindowState = WindowState.Normal;
+            ShowInTaskbar = true;
+            _notifyIcon?.Dispose();
         }
         
         private void Border1_OnMouseDown(object sender, MouseButtonEventArgs e)
