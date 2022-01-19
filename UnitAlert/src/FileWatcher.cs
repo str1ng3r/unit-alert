@@ -53,6 +53,7 @@ public class FileWatcher
                 Thread.Sleep(500);
                 continue;
             }
+            Trace.WriteLine(line);
             yield return line;
         }
     }
@@ -73,14 +74,17 @@ public class FileWatcher
         {
             if (_worker.CancellationPending)
             {
-                Trace.WriteLine("CANCELLED");
                 e.Cancel = true;
                 return;
             }
-            if (Unit != null && line.Contains(Unit))
+            
+            // If the unit is null or the line doesn't contain unit or the sound worker is busy, skip the iteration.
+            if (Unit == null || !line.Contains(Unit) || _soundWorker.IsBusy)
             {
-                _soundWorker.RunWorkerAsync();
+                continue;
             }
+            // Otherwise just play the sound.
+            _soundWorker.RunWorkerAsync();
         }
     }
     
