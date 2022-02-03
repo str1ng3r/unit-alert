@@ -29,7 +29,7 @@
                 </Grid.ColumnDefinitions>
             
                 <TextBlock Grid.Column="0" Text="Unit Alert " Foreground="White" Margin="5 5 0 0" />
-                <TextBlock Grid.Column="1" x:Name="WindowChromeUnitText" Foreground="White" Margin="5 5 0 0" />
+                <TextBlock Grid.Column="1" x:Name="WindowChromeUnitText" Foreground="White" Margin="2 5 0 0" />
                 <Button Grid.Column="3" x:Name="MinButton" Click="MinButton_OnClick" Style="{StaticResource WindowChromeMin}" Foreground="White" Content="🗕"/>
                 <Button Grid.Column="4" x:Name="CloseButton" Click="CloseButton_OnClick" Style="{StaticResource WindowChromeX}" Foreground="White" Content="✕"/>
             </Grid>
@@ -74,7 +74,7 @@
                     <Label Grid.Row="0" Foreground="White" Padding="0">Callsign</Label>
                     <StackPanel Grid.Row="1" Orientation="Horizontal">
                         <TextBox x:Name="UnitTextBox" Style="{StaticResource TextBoxStyle}" Width="150" />
-                        <Button x:Name="SelectButton" Click="SelectButton_OnClick" Style="{StaticResource MainButton}" Width="150" Content="Select" />
+                        <Button x:Name="ActivateButton" Click="ActivateButton_OnClick" Style="{StaticResource MainButton}" Width="150" Content="Activate" />
                         <Button x:Name="ResetButton" Click="ResetButton_OnClick" Visibility="Collapsed" Style="{StaticResource MainButton}" Width="150" Content="Reset" />
                     </StackPanel>
                 </Grid>
