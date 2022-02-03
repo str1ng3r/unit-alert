@@ -118,7 +118,7 @@ namespace UnitAlert
         {
             // Clicking the reset buttons hides it, enabling all the UI.
             _fileWatcher.CancelWatch();
-            SelectButton.Visibility = Visibility.Visible;
+            ActivateButton.Visibility = Visibility.Visible;
             ResetButton.Visibility = Visibility.Collapsed;
             UnitTextBox.IsEnabled = true;
             SoundFileTextBox.IsEnabled = true;
@@ -128,7 +128,7 @@ namespace UnitAlert
             WindowChromeUnitText.Text = "";
         }
 
-        private void SelectButton_OnClick(object sender, RoutedEventArgs e)
+        private void ActivateButton_OnClick(object sender, RoutedEventArgs e)
         {
             if (UnitTextBox.Text.Length == 0)
             {
@@ -149,7 +149,7 @@ namespace UnitAlert
             // This block disables all the UI and changes the Select button to a Reset button
             _fileWatcher.Unit = UnitTextBox.Text;
             WindowChromeUnitText.Text = "- Active";
-            SelectButton.Visibility = Visibility.Collapsed;
+            ActivateButton.Visibility = Visibility.Collapsed;
             ResetButton.Visibility = Visibility.Visible;
             UnitTextBox.IsEnabled = false;
             SoundFileTextBox.IsEnabled = false;
