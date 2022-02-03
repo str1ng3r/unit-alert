@@ -148,7 +148,7 @@ namespace UnitAlert
             
             // This block disables all the UI and changes the Select button to a Reset button
             _fileWatcher.Unit = UnitTextBox.Text;
-            WindowChromeUnitText.Text = $"({_fileWatcher.Unit})";
+            WindowChromeUnitText.Text = "- Active";
             SelectButton.Visibility = Visibility.Collapsed;
             ResetButton.Visibility = Visibility.Visible;
             UnitTextBox.IsEnabled = false;

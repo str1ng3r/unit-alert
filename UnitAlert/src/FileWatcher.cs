@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
@@ -17,7 +18,8 @@ public class FileWatcher
 
     public string? Unit
     {
-        get => _unit!.First();
+        // If unit is null, return an empty string, otherwise join the list on ;
+        get => _unit is null ? "" : string.Join(';', _unit);
         set => _unit = value?.Split(';').ToList();
     }
 
@@ -53,7 +55,6 @@ public class FileWatcher
         using var fileStream = File.Open(filePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
         fileStream.Seek(0, SeekOrigin.End);
         using var streamReader = new StreamReader(fileStream);
-        var lastFileSize = fileStream.Length;
         while (!_worker.CancellationPending)
         {
             var line = streamReader.ReadLine();
@@ -88,7 +89,7 @@ public class FileWatcher
             }
             
             // If the unit is null or the line doesn't contain unit or the sound worker is busy, skip the iteration.
-            if (_unit is null || !_unit.Any(s => line.Contains(s)) || _soundWorker.IsBusy)
+            if (_unit is null || !_unit.Any(s => line.Contains(s, StringComparison.OrdinalIgnoreCase)) || _soundWorker.IsBusy)
             {
                 continue;
             }
